@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Gestionnaire de Tâches Collaboratif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .task-card {
+            transition: all 0.3s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .priority-high { border-left: 4px solid #ef4444; }
+        .priority-medium { border-left: 4px solid #f59e0b; }
+        .priority-low { border-left: 4px solid #10b981; }
+        .status-todo { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+        .status-in_progress { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+        .status-done { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        .mobile-menu-open .sidebar-transition {
+            transform: translateX(0);
+        }
+        @media (max-width: 768px) {
+            .sidebar-transition {
+                transform: translateX(-100%);
+            }
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <button class="md:hidden text-gray-600 hover:text-gray-900" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                            <i class="fas fa-tasks text-white text-sm"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            TaskFlow
+                        </h1>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div id="user-menu" class="hidden items-center space-x-4">
+                        <div class="flex items-center space-x-2 bg-gray-100 rounded-full px-3 py-1">
+                            <i class="fas fa-user-circle text-gray-600"></i>
+                            <span id="username-display" class="text-gray-700 font-medium"></span>
+                        </div>
+                        <button onclick="showProfile()" class="text-gray-600 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-user-cog text-lg"></i>
+                        </button>
+                        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors shadow-md">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Déconnexion
+                        </button>
+                    </div>
+                    <div id="auth-buttons" class="flex space-x-2">
+                        <button onclick="showLogin()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors shadow-md">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Connexion
+                        </button>
+                        <button onclick="showRegister()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors shadow-md">
+                            <i class="fas fa-user-plus mr-2"></i>Inscription
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar-transition fixed md:relative z-40 w-64 bg-white shadow-lg border-r border-gray-200 md:translate-x-0">
+            <div class="p-6">
+                <nav class="space-y-2">
+                    <button onclick="showDashboard()" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center group">
+                        <i class="fas fa-home mr-3 text-blue-600 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Tableau de bord</span>
+                    </button>
+                    <button onclick="showProjects()" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center group">
+                        <i class="fas fa-project-diagram mr-3 text-green-600 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Mes Projets</span>
+                    </button>
+                    <button onclick="showTasks()" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center group">
+                        <i class="fas fa-tasks mr-3 text-purple-600 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-medium">Mes Tâches</span>
+                    </button>
+                </nav>
+
+                <div class="mt-8">
+                    <button onclick="showCreateProject()" class="w-full gradient-bg hover:opacity-90 text-white px-4 py-3 rounded-lg transition-all flex items-center justify-center shadow-lg hover:shadow-xl">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nouveau Projet
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile overlay -->
+        <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden hidden" onclick="toggleMobileMenu()"></div>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:ml-0">
+            <!-- Loading Spinner -->
+            <div id="loading" class="hidden fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+
+            <!-- Welcome Section -->
+            <div id="welcome-section" class="text-center py-20">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-5xl font-bold text-gray-800 mb-6">
+                        Bienvenue sur <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">TaskFlow</span>
+                    </h1>
+                    <p class="text-xl text-gray-600 mb-8">
+                        Gérez vos projets et tâches de manière collaborative et efficace
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                            <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4 mx-auto">
+                                <i class="fas fa-users text-white"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2">Collaboration</h3>
+                            <p class="text-gray-600">Travaillez en équipe sur vos projets</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                            <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4 mx-auto">
+                                <i class="fas fa-chart-line text-white"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2">Suivi</h3>
+                            <p class="text-gray-600">Suivez l'avancement de vos tâches</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+                            <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4 mx-auto">
+                                <i class="fas fa-mobile-alt text-white"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2">Responsive</h3>
+                            <p class="text-gray-600">Accessible partout, sur tous vos appareils</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auth Forms -->
+            <div id="auth-section" class="hidden max-w-md mx-auto">
+                <!-- Login Form -->
+                <div id="login-form" class="hidden bg-white rounded-xl shadow-xl p-8 animate-fade-in">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-sign-in-alt text-white text-xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Connexion</h2>
+                        <p class="text-gray-600">Accédez à votre espace de travail</p>
+                    </div>
+                    <form onsubmit="login(event)">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 font-medium mb-2">Email</label>
+                            <input type="email" id="login-email" required placeholder="votre@email.com" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Mot de passe</label>
+                            <input type="password" id="login-password" required placeholder="••••••••" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button type="submit" class="w-full gradient-bg hover:opacity-90 text-white py-3 rounded-lg transition-all shadow-lg hover:shadow-xl">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Se connecter
+                        </button>
+                    </form>
+                    <div class="text-center mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-gray-600">
+                            Pas encore de compte ? 
+                            <button onclick="showRegister()" class="text-blue-500 hover:text-blue-600 font-medium hover:underline">
+                                Créer un compte
+                            </button>
+                        </p>
+                        <p class="text-sm text-gray-500 mt-2">
+                            Compte de test: admin@taskflow.com / password123
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="hidden bg-white rounded-xl shadow-xl p-8 animate-fade-in">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-user-plus text-white text-xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Inscription</h2>
+                        <p class="text-gray-600">Créez votre compte TaskFlow</p>
+                    </div>
+                    <form onsubmit="register(event)">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 font-medium mb-2">Nom d'utilisateur</label>
+                            <input type="text" id="register-username" required placeholder="nom_utilisateur" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 font-medium mb-2">Email</label>
+                            <input type="email" id="register-email" required placeholder="votre@email.com" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Mot de passe</label>
+                            <input type="password" id="register-password" required placeholder="••••••••" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <p class="text-sm text-gray-500 mt-1">Minimum 6 caractères</p>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 rounded-lg transition-all shadow-lg hover:shadow-xl">
+                            <i class="fas fa-user-plus mr-2"></i>Créer mon compte
+                        </button>
+                    </form>
+                    <div class="text-center mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-gray-600">
+                            Déjà un compte ? 
+                            <button onclick="showLogin()" class="text-green-500 hover:text-green-600 font-medium hover:underline">
+                                Se connecter
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="hidden animate-fade-in">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Tableau de bord</h2>
+                    <p class="text-gray-600">Vue d'ensemble de vos projets et tâches</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium">Total Projets</p>
+                                <p id="total-projects" class="text-2xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-project-diagram text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium">Tâches En Cours</p>
+                                <p id="tasks-in-progress" class="text-2xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-clock text-yellow-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium">Tâches Terminées</p>
+                                <p id="tasks-completed" class="text-2xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium">Total Tâches</p>
+                                <p id="total-tasks" class="text-2xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-tasks text-purple-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Recent Projects -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-project-diagram text-blue-600 mr-2"></i>
+                            Projets Récents
+                        </h3>
+                        <div id="recent-projects" class="space-y-3">
+                            <p class="text-gray-500 text-center py-8">Aucun projet trouvé</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Tasks -->
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-tasks text-purple-600 mr-2"></i>
+                            Tâches Récentes
+                        </h3>
+                        <div id="recent-tasks" class="space-y-3">
+                            <p class="text-gray-500 text-center py-8">Aucune tâche trouvée</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects Section -->
+            <div id="projects-section" class="hidden animate-fade-in">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Mes Projets</h2>
+                        <p class="text-gray-600">Gérez et organisez tous vos projets</p>
+                    </div>
+                    <button onclick="showCreateProject()" class="gradient-bg hover:opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nouveau Projet
+                    </button>
+                </div>
+                
+                <div id="projects-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="text-center py-20 col-span-full">
+                        <i class="fas fa-project-diagram text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">Aucun projet trouvé</p>
+                        <button onclick="showCreateProject()" class="mt-4 text-blue-500 hover:text-blue-600">
+                            Créer votre premier projet
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Section -->
+            <div id="tasks-section" class="hidden animate-fade-in">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Mes Tâches</h2>
+                    <p class="text-gray-600">Toutes vos tâches assignées</p>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="filterTasks('all')" class="filter-btn active px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors">
+                            Toutes
+                        </button>
+                        <button onclick="filterTasks('todo')" class="filter-btn px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors">
+                            À faire
+                        </button>
+                        <button onclick="filterTasks('in_progress')" class="filter-btn px-4 py-2 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors">
+                            En cours
+                        </button>
+                        <button onclick="filterTasks('done')" class="filter-btn px-4 py-2 rounded-lg bg-green-100 text-green-800 hover:bg-green-200 transition-colors">
+                            Terminées
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="tasks-list" class="space-y-4">
+                    <div class="text-center py-20">
+                        <i class="fas fa-tasks text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">Aucune tâche trouvée</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Detail -->
+            <div id="project-detail" class="hidden animate-fade-in">
+                <div class="mb-6">
+                    <button onclick="showProjects()" class="text-blue-500 hover:text-blue-600 mb-4 flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Retour aux projets
+                    </button>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 id="project-detail-title" class="text-3xl font-bold text-gray-800 mb-2"></h2>
+                            <p id="project-detail-description" class="text-gray-600"></p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editCurrentProject()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                                <i class="fas fa-edit mr-2"></i>Modifier
+                            </button>
+                            <button onclick="showCreateTask()" class="gradient-bg hover:opacity-90 text-white px-4 py-2 rounded-lg transition-all shadow-lg">
+                                <i class="fas fa-plus mr-2"></i>Nouvelle Tâche
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-yellow-700 mb-4 flex items-center">
+                            <i class="fas fa-clock text-yellow-600 mr-2"></i>
+                            À faire
+                        </h3>
+                        <div id="todo-tasks" class="space-y-3 min-h-32">
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-700 mb-4 flex items-center">
+                            <i class="fas fa-spinner text-blue-600 mr-2"></i>
+                            En cours
+                        </h3>
+                        <div id="in-progress-tasks" class="space-y-3 min-h-32">
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-green-700 mb-4 flex items-center">
+                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                            Terminées
+                        </h3>
+                        <div id="done-tasks" class="space-y-3 min-h-32">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div id="profile-section" class="hidden animate-fade-in max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="text-center mb-8">
+                        <div class="w-24 h-24 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-user text-white text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Mon Profil</h2>
+                        <p class="text-gray-600">Gérez vos informations personnelles</p>
+                    </div>
+
+                    <form onsubmit="updateProfile(event)">
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Nom d'utilisateur</label>
+                            <input type="text" id="profile-username" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Email</label>
+                            <input type="email" id="profile-email" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Rôle</label>
+                            <input type="text" id="profile-role" readonly 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-gray-700 font-medium mb-2">Membre depuis</label>
+                            <input type="text" id="profile-created" readonly 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
+                        </div>
+
+                        <div class="flex justify-between">
+                            <button type="button" onclick="showDashboard()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors">
+                                Annuler
+                            </button>
+                            <button type="submit" class="gradient-bg hover:opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg">
+                                <i class="fas fa-save mr-2"></i>Sauvegarder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Create/Edit Project Modal -->
+    <div id="project-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 animate-fade-in">
+            <h3 id="project-modal-title" class="text-xl font-bold text-gray-800 mb-6">Nouveau Projet</h3>
+            <form onsubmit="saveProject(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">Nom du projet</label>
+                    <input type="text" id="project-name" required placeholder="Nom de votre projet"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-medium mb-2">Description</label>
+                    <textarea id="project-description" rows="3" placeholder="Description du projet"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeProjectModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="gradient-bg hover:opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg">
+                        <i class="fas fa-save mr-2"></i>Sauvegarder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create/Edit Task Modal -->
+    <div id="task-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 animate-fade-in">
+            <h3 id="task-modal-title" class="text-xl font-bold text-gray-800 mb-6">Nouvelle Tâche</h3>
+            <form onsubmit="saveTask(event)">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">Titre</label>
+                    <input type="text" id="task-title" required placeholder="Titre de la tâche"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">Description</label>
+                    <textarea id="task-description" rows="3" placeholder="Description de la tâche"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">Priorité</label>
+                    <select id="task-priority" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="low">Basse</option>
+                        <option value="medium" selected>Moyenne</option>
+                        <option value="high">Haute</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2">Statut</label>
+                    <select id="task-status" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="todo" selected>À faire</option>
+                        <option value="in_progress">En cours</option>
+                        <option value="done">Terminée</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-medium mb-2">Assigner à</label>
+                    <select id="task-assigned-to" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Non assigné</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeTaskModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="gradient-bg hover:opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg">
+                        <i class="fas fa-save mr-2"></i>Sauvegarder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="task-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto animate-fade-in">
+            <div class="flex justify-between items-start mb-6">
+                <h3 id="task-detail-title" class="text-xl font-bold text-gray-800"></h3>
+                <button onclick="closeTaskDetailModal()" class="text-gray-500 hover:text-gray-700 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <div class="flex items-center space-x-4 mb-4">
+                    <span id="task-detail-status" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                    <span id="task-detail-priority" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                </div>
+                <p id="task-detail-description" class="text-gray-600 mb-4"></p>
+                <p class="text-sm text-gray-500">
+                    Assigné à: <span id="task-detail-assigned" class="font-medium"></span>
+                </p>
+                <p class="text-sm text-gray-500">
+                    Créé par: <span id="task-detail-created-by" class="font-medium"></span>
+                </p>
+            </div>
+
+            <div class="border-t pt-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">Commentaires</h4>
+                <div id="task-comments" class="space-y-3 mb-4 max-h-40 overflow-y-auto">
+                    <!-- Comments will be loaded here -->
+                </div>
+                
+                <form onsubmit="addComment(event)" class="flex space-x-3">
+                    <input type="text" id="comment-input" placeholder="Ajouter un commentaire..." required
+                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6 pt-6 border-t">
+                <button onclick="editTask(currentTaskId)" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Modifier
+                </button>
+                <button onclick="deleteTask(currentTaskId)" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-trash mr-2"></i>Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="hidden fixed top-4 right-4 z-50 max-w-sm">
+        <div class="bg-white border-l-4 border-green-500 rounded-lg shadow-lg p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i id="notification-icon" class="fas fa-check-circle text-green-500"></i>
+                </div>
+                <div class="ml-3">
+                    <p id="notification-message" class="text-sm font-medium text-gray-900"></p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button onclick="hideNotification()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentUser = null;
+        let token = localStorage.getItem('token');
+        let projects = [];
+        let tasks = [];
+        let users = [];
+        let currentProjectId = null;
+        let currentTaskId = null;
+        let editingProjectId = null;
+        let editingTaskId = null;
+
+        // API Base URL
+        const API_BASE = '/api';
+
+        // Initialisation de l'application
+        document.addEventListener('DOMContentLoaded', function() {
+            if (token) {
+                verifyToken();
+            } else {
+                showWelcome();
+            }
+        });
+
+        // Fonctions d'authentification
+        async function register(event) {
+            event.preventDefault();
+            showLoading();
+            
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showNotification('Compte créé avec succès ! Vous pouvez maintenant vous connecter.', 'success');
+                    showLogin();
+                } else {
+                    showNotification(data.error || 'Erreur lors de l\'inscription', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion au serveur', 'error');
+                console.error('Registration error:', error);
+            }
+        }
+
+        async function login(event) {
+            event.preventDefault();
+            showLoading();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    token = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', token);
+                    
+                    showNotification(`Bienvenue ${data.user.username} !`, 'success');
+                    showDashboard();
+                    updateUI();
+                } else {
+                    showNotification(data.error || 'Erreur lors de la connexion', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion au serveur', 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function verifyToken() {
+            if (!token) return false;
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                hideLoading();
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    showDashboard();
+                    updateUI();
+                    return true;
+                } else {
+                    localStorage.removeItem('token');
+                    token = null;
+                    showWelcome();
+                    return false;
+                }
+            } catch (error) {
+                hideLoading();
+                localStorage.removeItem('token');
+                token = null;
+                showWelcome();
+                console.error('Token verification error:', error);
+                return false;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            token = null;
+            currentUser = null;
+            projects = [];
+            tasks = [];
+            showNotification('Déconnexion réussie', 'info');
+            showWelcome();
+            updateUI();
+        }
+
+        // Fonctions d'interface utilisateur
+        function updateUI() {
+            const userMenu = document.getElementById('user-menu');
+            const authButtons = document.getElementById('auth-buttons');
+            const usernameDisplay = document.getElementById('username-display');
+            const sidebar = document.getElementById('sidebar');
+
+            if (currentUser) {
+                userMenu.classList.remove('hidden');
+                userMenu.classList.add('flex');
+                authButtons.classList.add('hidden');
+                sidebar.classList.remove('hidden');
+                usernameDisplay.textContent = currentUser.username;
+            } else {
+                userMenu.classList.add('hidden');
+                userMenu.classList.remove('flex');
+                authButtons.classList.remove('hidden');
+                sidebar.classList.add('hidden');
+            }
+        }
+
+        function showWelcome() {
+            hideAllSections();
+            document.getElementById('welcome-section').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            hideAllSections();
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        }
+
+        function showRegister() {
+            hideAllSections();
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('login-form').classList.add('hidden');
+        }
+
+        async function showDashboard() {
+            if (!currentUser) return;
+            
+            hideAllSections();
+            document.getElementById('dashboard').classList.remove('hidden');
+            setActiveNavItem('dashboard');
+            await loadDashboardData();
+        }
+
+        async function showProjects() {
+            if (!currentUser) return;
+            
+            hideAllSections();
+            document.getElementById('projects-section').classList.remove('hidden');
+            setActiveNavItem('projects');
+            await loadProjects();
+        }
+
+        async function showTasks() {
+            if (!currentUser) return;
+            
+            hideAllSections();
+            document.getElementById('tasks-section').classList.remove('hidden');
+            setActiveNavItem('tasks');
+            await loadAllTasks();
+        }
+
+        async function showProfile() {
+            if (!currentUser) return;
+            
+            hideAllSections();
+            document.getElementById('profile-section').classList.remove('hidden');
+            await loadProfile();
+        }
+
+        function hideAllSections() {
+            const sections = [
+                'welcome-section', 'auth-section', 'dashboard', 'projects-section', 
+                'tasks-section', 'project-detail', 'profile-section'
+            ];
+            sections.forEach(section => {
+                document.getElementById(section).classList.add('hidden');
+            });
+        }
+
+        function setActiveNavItem(active) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-blue-100', 'text-blue-700');
+            });
+            
+            // Add active class based on the active parameter
+            // This is a simplified version - you might want to improve this
+        }
+
+        // Fonctions de gestion des projets
+        async function loadProjects() {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE}/projects`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    projects = await response.json();
+                    renderProjects();
+                } else {
+                    showNotification('Erreur lors du chargement des projets', 'error');
+                }
+            } catch (error) {
+                showNotification('Erreur de connexion', 'error');
+                console.error('Load projects error:', error);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderProjects() {
+            const projectsList = document.getElementById('projects-list');
+            
+            if (projects.length === 0) {
+                projectsList.innerHTML = `
+                    <div class="text-center py-20 col-span-full">
+                        <i class="fas fa-project-diagram text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500 mb-4">Aucun projet trouvé</p>
+                        <button onclick="showCreateProject()" class="gradient-bg hover:opacity-90 text-white px-6 py-3 rounded-lg transition-all shadow-lg">
+                            <i class="fas fa-plus mr-2"></i>Créer votre premier projet
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            projectsList.innerHTML = projects.map(project => `
+                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer" onclick="showProjectDetail(${project.id})">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">${escapeHtml(project.name)}</h3>
+                        <div class="flex space-x-2">
+                            <button onclick="event.stopPropagation(); editProject(${project.id})" class="text-blue-500 hover:text-blue-600 p-1">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteProject(${project.id})" class="text-red-500 hover:text-red-600 p-1">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4 line-clamp-3">${escapeHtml(project.description || 'Aucune description')}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span><i class="fas fa-user mr-1"></i>${escapeHtml(project.owner_name)}</span>
+                        <span><i class="fas fa-tasks mr-1"></i>${project.task_count} tâche(s)</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function showProjectDetail(projectId) {
+            currentProjectId = projectId;
+            const project = projects.find(p => p.id === projectId);
+            
+            if (!project) return;
+
+            hideAllSections();
+            document.getElementById('project-detail').classList.remove('hidden');
+            
+            document.getElementById('project-detail-title').textContent = project.name;
+            document.getElementById('project-detail-description').textContent = project.description || 'Aucune description';
+            
+            await loadProjectTasks(projectId);
+        }
+
+        async function loadProjectTasks(projectId) {
+            showLoading();
+            
+            try {
+                const response = await fetch(`${API_BASE}/projects/${projectId}/tasks`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    tasks = await response.json();
+                    renderProjectTasks();
+                } else {
+                    showNotification('Erreur lors du chargement des tâches', 'error');
+                }
+            } catch (error) {
+                showNotification('Erreur de connexion', 'error');
+                console.error('Load project tasks error:', error);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderProjectTasks() {
+            const todoTasks = tasks.filter(t => t.status === 'todo');
+            const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+            const doneTasks = tasks.filter(t => t.status === 'done');
+
+            document.getElementById('todo-tasks').innerHTML = renderTaskCards(todoTasks, 'todo');
+            document.getElementById('in-progress-tasks').innerHTML = renderTaskCards(inProgressTasks, 'in_progress');
+            document.getElementById('done-tasks').innerHTML = renderTaskCards(doneTasks, 'done');
+        }
+
+        function renderTaskCards(tasks, status) {
+            if (tasks.length === 0) {
+                return `<p class="text-gray-400 text-center py-4">Aucune tâche</p>`;
+            }
+
+            return tasks.map(task => `
+                <div class="task-card priority-${task.priority} status-${task.status} p-3 rounded-lg cursor-pointer" onclick="showTaskDetail(${task.id})">
+                    <h4 class="font-medium text-gray-800 mb-2">${escapeHtml(task.title)}</h4>
+                    <p class="text-sm text-gray-600 mb-2 line-clamp-2">${escapeHtml(task.description || '')}</p>
+                    <div class="flex justify-between items-center text-xs text-gray-500">
+                        <span class="priority-badge priority-${task.priority}">${getPriorityText(task.priority)}</span>
+                        <span>${escapeHtml(task.assigned_to_name || 'Non assigné')}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Fonctions modales
+        function showCreateProject() {
+            editingProjectId = null;
+            document.getElementById('project-modal-title').textContent = 'Nouveau Projet';
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-description').value = '';
+            document.getElementById('project-modal').classList.remove('hidden');
+        }
+
+        function editProject(projectId) {
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return;
+
+            editingProjectId = projectId;
+            document.getElementById('project-modal-title').textContent = 'Modifier le Projet';
+            document.getElementById('project-name').value = project.name;
+            document.getElementById('project-description').value = project.description || '';
+            document.getElementById('project-modal').classList.remove('hidden');
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.add('hidden');
+            editingProjectId = null;
+        }
+
+        async function saveProject(event) {
+            event.preventDefault();
+            showLoading();
+
+            const name = document.getElementById('project-name').value;
+            const description = document.getElementById('project-description').value;
+
+            try {
+                const url = editingProjectId ? 
+                    `${API_BASE}/projects/${editingProjectId}` : 
+                    `${API_BASE}/projects`;
+                const method = editingProjectId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showNotification(editingProjectId ? 'Projet modifié avec succès' : 'Projet créé avec succès', 'success');
+                    closeProjectModal();
+                    await loadProjects();
+                } else {
+                    showNotification(data.error || 'Erreur lors de la sauvegarde', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion', 'error');
+                console.error('Save project error:', error);
+            }
+        }
+
+        async function deleteProject(projectId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible.')) {
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE}/projects/${projectId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                hideLoading();
+
+                if (response.ok) {
+                    showNotification('Projet supprimé avec succès', 'success');
+                    await loadProjects();
+                } else {
+                    const data = await response.json();
+                    showNotification(data.error || 'Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion', 'error');
+                console.error('Delete project error:', error);
+            }
+        }
+
+        // Fonctions de gestion des tâches
+        async function showCreateTask() {
+            await loadUsers();
+            
+            editingTaskId = null;
+            document.getElementById('task-modal-title').textContent = 'Nouvelle Tâche';
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-description').value = '';
+            document.getElementById('task-priority').value = 'medium';
+            document.getElementById('task-status').value = 'todo';
+            document.getElementById('task-assigned-to').value = '';
+            
+            populateUserSelect();
+            document.getElementById('task-modal').classList.remove('hidden');
+        }
+
+        async function editTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            await loadUsers();
+            
+            editingTaskId = taskId;
+            document.getElementById('task-modal-title').textContent = 'Modifier la Tâche';
+            document.getElementById('task-title').value = task.title;
+            document.getElementById('task-description').value = task.description || '';
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('task-status').value = task.status;
+            document.getElementById('task-assigned-to').value = task.assigned_to || '';
+            
+            populateUserSelect();
+            document.getElementById('task-modal').classList.remove('hidden');
+            closeTaskDetailModal();
+        }
+
+        function closeTaskModal() {
+            document.getElementById('task-modal').classList.add('hidden');
+            editingTaskId = null;
+        }
+
+        async function saveTask(event) {
+            event.preventDefault();
+            showLoading();
+
+            const title = document.getElementById('task-title').value;
+            const description = document.getElementById('task-description').value;
+            const priority = document.getElementById('task-priority').value;
+            const status = document.getElementById('task-status').value;
+            const assigned_to = document.getElementById('task-assigned-to').value || null;
+
+            try {
+                const url = editingTaskId ? 
+                    `${API_BASE}/tasks/${editingTaskId}` : 
+                    `${API_BASE}/projects/${currentProjectId}/tasks`;
+                const method = editingTaskId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, description, priority, status, assigned_to })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    showNotification(editingTaskId ? 'Tâche modifiée avec succès' : 'Tâche créée avec succès', 'success');
+                    closeTaskModal();
+                    await loadProjectTasks(currentProjectId);
+                } else {
+                    showNotification(data.error || 'Erreur lors de la sauvegarde', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion', 'error');
+                console.error('Save task error:', error);
+            }
+        }
+
+        async function deleteTask(taskId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                hideLoading();
+
+                if (response.ok) {
+                    showNotification('Tâche supprimée avec succès', 'success');
+                    closeTaskDetailModal();
+                    await loadProjectTasks(currentProjectId);
+                } else {
+                    const data = await response.json();
+                    showNotification(data.error || 'Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion', 'error');
+                console.error('Delete task error:', error);
+            }
+        }
+
+        async function showTaskDetail(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            currentTaskId = taskId;
+            
+            document.getElementById('task-detail-title').textContent = task.title;
+            document.getElementById('task-detail-description').textContent = task.description || 'Aucune description';
+            
+            // Status badge
+            const statusBadge = document.getElementById('task-detail-status');
+            statusBadge.textContent = getStatusText(task.status);
+            statusBadge.className = `px-3 py-1 rounded-full text-sm font-medium status-${task.status}`;
+            
+            // Priority badge
+            const priorityBadge = document.getElementById('task-detail-priority');
+            priorityBadge.textContent = getPriorityText(task.priority);
+            priorityBadge.className = `px-3 py-1 rounded-full text-sm font-medium priority-${task.priority}`;
+            
+            document.getElementById('task-detail-assigned').textContent = task.assigned_to_name || 'Non assigné';
+            document.getElementById('task-detail-created-by').textContent = task.created_by_name;
+            
+            document.getElementById('task-detail-modal').classList.remove('hidden');
+            await loadTaskComments(taskId);
+        }
+
+        function closeTaskDetailModal() {
+            document.getElementById('task-detail-modal').classList.add('hidden');
+            currentTaskId = null;
+        }
+
+        // Fonctions des commentaires
+        async function loadTaskComments(taskId) {
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${taskId}/comments`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const comments = await response.json();
+                    renderComments(comments);
+                }
+            } catch (error) {
+                console.error('Load comments error:', error);
+            }
+        }
+
+        function renderComments(comments) {
+            const commentsContainer = document.getElementById('task-comments');
+            
+            if (comments.length === 0) {
+                commentsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">Aucun commentaire</p>';
+                return;
+            }
+
+            commentsContainer.innerHTML = comments.map(comment => `
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium text-gray-800">${escapeHtml(comment.username)}</span>
+                        <span class="text-xs text-gray-500">${formatDate(comment.created_at)}</span>
+                    </div>
+                    <p class="text-gray-700">${escapeHtml(comment.content)}</p>
+                </div>
+            `).join('');
+        }
+
+        async function addComment(event) {
+            event.preventDefault();
+            
+            const content = document.getElementById('comment-input').value.trim();
+            if (!content) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/tasks/${currentTaskId}/comments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ content })
+                });
+
+                if (response.ok) {
+                    document.getElementById('comment-input').value = '';
+                    await loadTaskComments(currentTaskId);
+                    showNotification('Commentaire ajouté', 'success');
+                }
+            } catch (error) {
+                showNotification('Erreur lors de l\'ajout du commentaire', 'error');
+                console.error('Add comment error:', error);
+            }
+        }
+
+        // Fonctions utilitaires
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    users = await response.json();
+                }
+            } catch (error) {
+                console.error('Load users error:', error);
+            }
+        }
+
+        function populateUserSelect() {
+            const select = document.getElementById('task-assigned-to');
+            select.innerHTML = '<option value="">Non assigné</option>';
+            
+            users.forEach(user => {
+                select.innerHTML += `<option value="${user.id}">${escapeHtml(user.username)} (${escapeHtml(user.email)})</option>`;
+            });
+        }
+
+        async function loadDashboardData() {
+            await loadProjects();
+            await loadAllTasks();
+            updateDashboardStats();
+            renderRecentProjects();
+            renderRecentTasks();
+        }
+
+        async function loadAllTasks() {
+            // Load tasks from all projects
+            const allTasks = [];
+            for (const project of projects) {
+                try {
+                    const response = await fetch(`${API_BASE}/projects/${project.id}/tasks`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const projectTasks = await response.json();
+                        allTasks.push(...projectTasks.map(task => ({...task, project_name: project.name})));
+                    }
+                } catch (error) {
+                    console.error(`Error loading tasks for project ${project.id}:`, error);
+                }
+            }
+            tasks = allTasks;
+        }
+
+        function updateDashboardStats() {
+            const totalProjects = projects.length;
+            const tasksInProgress = tasks.filter(t => t.status === 'in_progress').length;
+            const tasksCompleted = tasks.filter(t => t.status === 'done').length;
+            const totalTasks = tasks.length;
+
+            document.getElementById('total-projects').textContent = totalProjects;
+            document.getElementById('tasks-in-progress').textContent = tasksInProgress;
+            document.getElementById('tasks-completed').textContent = tasksCompleted;
+            document.getElementById('total-tasks').textContent = totalTasks;
+        }
+
+        function renderRecentProjects() {
+            const container = document.getElementById('recent-projects');
+            const recentProjects = projects.slice(0, 3);
+
+            if (recentProjects.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Aucun projet trouvé</p>';
+                return;
+            }
+
+            container.innerHTML = recentProjects.map(project => `
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer" onclick="showProjectDetail(${project.id})">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-project-diagram text-blue-600 text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-800">${escapeHtml(project.name)}</h4>
+                        <p class="text-sm text-gray-500">${project.task_count} tâche(s)</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRecentTasks() {
+            const container = document.getElementById('recent-tasks');
+            const recentTasks = tasks.slice(0, 5);
+
+            if (recentTasks.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">Aucune tâche trouvée</p>';
+                return;
+            }
+
+            container.innerHTML = recentTasks.map(task => `
+                <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer" onclick="showTaskDetail(${task.id})">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-tasks text-purple-600 text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-800">${escapeHtml(task.title)}</h4>
+                        <p class="text-sm text-gray-500">${escapeHtml(task.project_name || 'Projet inconnu')} • ${getStatusText(task.status)}</p>
+                    </div>
+                    <span class="priority-badge priority-${task.priority} text-xs">${getPriorityText(task.priority)}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadProfile() {
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const profile = await response.json();
+                    document.getElementById('profile-username').value = profile.username;
+                    document.getElementById('profile-email').value = profile.email;
+                    document.getElementById('profile-role').value = profile.role;
+                    document.getElementById('profile-created').value = formatDate(profile.created_at);
+                }
+            } catch (error) {
+                showNotification('Erreur lors du chargement du profil', 'error');
+                console.error('Load profile error:', error);
+            }
+        }
+
+        async function updateProfile(event) {
+            event.preventDefault();
+            showLoading();
+
+            const username = document.getElementById('profile-username').value;
+            const email = document.getElementById('profile-email').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ username, email })
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    currentUser = { ...currentUser, ...data };
+                    document.getElementById('username-display').textContent = currentUser.username;
+                    showNotification('Profil mis à jour avec succès', 'success');
+                } else {
+                    showNotification(data.error || 'Erreur lors de la mise à jour', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur de connexion', 'error');
+                console.error('Update profile error:', error);
+            }
+        }
+
+        // Fonctions de filtrage des tâches
+        function filterTasks(status) {
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            
+            event.target.classList.remove('bg-gray-200', 'text-gray-700');
+            event.target.classList.add('active', 'bg-blue-500', 'text-white');
+
+            const filteredTasks = status === 'all' ? tasks : tasks.filter(t => t.status === status);
+            renderAllTasks(filteredTasks);
+        }
+
+        function renderAllTasks(tasksToRender = tasks) {
+            const container = document.getElementById('tasks-list');
+            
+            if (tasksToRender.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-20">
+                        <i class="fas fa-tasks text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">Aucune tâche trouvée</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = tasksToRender.map(task => `
+                <div class="task-card priority-${task.priority} status-${task.status} bg-white rounded-lg p-4 cursor-pointer" onclick="showTaskDetail(${task.id})">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">${escapeHtml(task.title)}</h3>
+                        <div class="flex space-x-2">
+                            <span class="priority-badge priority-${task.priority} px-2 py-1 rounded text-xs font-medium">
+                                ${getPriorityText(task.priority)}
+                            </span>
+                            <span class="status-badge status-${task.status} px-2 py-1 rounded text-xs font-medium">
+                                ${getStatusText(task.status)}
+                            </span>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-3 line-clamp-2">${escapeHtml(task.description || '')}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span><i class="fas fa-project-diagram mr-1"></i>${escapeHtml(task.project_name || 'Projet inconnu')}</span>
+                        <span><i class="fas fa-user mr-1"></i>${escapeHtml(task.assigned_to_name || 'Non assigné')}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Fonctions utilitaires
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'todo': 'À faire',
+                'in_progress': 'En cours',
+                'done': 'Terminée'
+            };
+            return statusMap[status] || status;
+        }
+
+        function getPriorityText(priority) {
+            const priorityMap = {
+                'low': 'Basse',
+                'medium': 'Moyenne',
+                'high': 'Haute'
+            };
+            return priorityMap[priority] || priority;
+        }
+
+        // Fonctions de navigation mobile
+        function toggleMobileMenu() {
+            const body = document.body;
+            const overlay = document.getElementById('mobile-overlay');
+            
+            if (body.classList.contains('mobile-menu-open')) {
+                body.classList.remove('mobile-menu-open');
+                overlay.classList.add('hidden');
+            } else {
+                body.classList.add('mobile-menu-open');
+                overlay.classList.remove('hidden');
+            }
+        }
+
+        // Fonctions de notification
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const icon = document.getElementById('notification-icon');
+            const messageEl = document.getElementById('notification-message');
+            
+            // Update content
+            messageEl.textContent = message;
+            
+            // Update style based on type
+            const notificationDiv = notification.querySelector('div');
+            notificationDiv.classList.remove('border-green-500', 'border-red-500', 'border-blue-500', 'border-yellow-500');
+            icon.classList.remove('text-green-500', 'text-red-500', 'text-blue-500', 'text-yellow-500', 'fa-check-circle', 'fa-exclamation-triangle', 'fa-info-circle', 'fa-times-circle');
+            
+            switch (type) {
+                case 'success':
+                    notificationDiv.classList.add('border-green-500');
+                    icon.classList.add('text-green-500', 'fa-check-circle');
+                    break;
+                case 'error':
+                    notificationDiv.classList.add('border-red-500');
+                    icon.classList.add('text-red-500', 'fa-times-circle');
+                    break;
+                case 'info':
+                    notificationDiv.classList.add('border-blue-500');
+                    icon.classList.add('text-blue-500', 'fa-info-circle');
+                    break;
+                case 'warning':
+                    notificationDiv.classList.add('border-yellow-500');
+                    icon.classList.add('text-yellow-500', 'fa-exclamation-triangle');
+                    break;
+            }
+            
+            // Show notification
+            notification.classList.remove('hidden');
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 5000);
+        }
+
+        function hideNotification() {
+            document.getElementById('notification').classList.add('hidden');
+        }
+
+        // Fonctions de chargement
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        // Fonction pour modifier le projet actuel
+        function editCurrentProject() {
+            if (currentProjectId) {
+                editProject(currentProjectId);
+            }
+        }
+
+        // Gestion des erreurs globales
+        window.addEventListener('error', function(event) {
+            console.error('Erreur JavaScript:', event.error);
+            showNotification('Une erreur inattendue s\'est produite', 'error');
+        });
+
+        // Gestion des erreurs de réseau
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Erreur de promesse:', event.reason);
+            showNotification('Erreur de connexion réseau', 'error');
+        });
+
+        // Fermer les modales en cliquant à l'extérieur
+        window.addEventListener('click', function(event) {
+            const modals = ['project-modal', 'task-modal', 'task-detail-modal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        });
+
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(event) {
+            // Échap pour fermer les modales
+            if (event.key === 'Escape') {
+                document.querySelectorAll('.fixed').forEach(modal => {
+                    if (!modal.classList.contains('hidden') && modal.id !== 'loading') {
+                        modal.classList.add('hidden');
+                    }
+                });
+                toggleMobileMenu(); // Fermer le menu mobile aussi
+            }
+            
+            // Ctrl/Cmd + N pour nouveau projet
+            if ((event.ctrlKey || event.metaKey) && event.key === 'n' && currentUser) {
+                event.preventDefault();
+                showCreateProject();
+            }
+        });
+    </script>
+</body>
+</html>
